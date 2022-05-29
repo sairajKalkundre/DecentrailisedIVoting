@@ -8,7 +8,7 @@
  * @format
  */
 
-import React, {useCallback, useMemo, useRef} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {
   FlatList,
   SafeAreaView,
@@ -51,6 +51,7 @@ const App = () => {
         'https://upload.wikimedia.org/wikipedia/commons/7/70/Rahul_Gandhi_%28portrait_crop%29.jpg',
     },
   ];
+
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   // variables
@@ -63,6 +64,7 @@ const App = () => {
   const openBottomSheet = () => {
     bottomSheetRef.current.snapToPosition('35%');
   };
+
   const renderItem = ({item}) => {
     return (
       <View
@@ -116,11 +118,11 @@ const App = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
-          <View style={{height: 30, width: 30, marginLeft: 10}}>
+          <View style={{height: 20, width: 20, marginLeft: 10}}>
             <Profile />
           </View>
           <Text style={{fontSize: 22}}>Chief Minister</Text>
-          <View style={{height: 25, width: 25, marginRight: 10}}>
+          <View style={{height: 20, width: 20, marginRight: 10}}>
             <DownArrow />
           </View>
         </View>
