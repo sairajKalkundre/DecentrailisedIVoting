@@ -7,4 +7,4 @@ import App from './App';
 import {name as appName} from './app.json';
 import CampaignList from './src/screens/CampaignList';
 
-AppRegistry.registerComponent(appName, () => CampaignList);
+AppRegistry.registerComponent(appName, () => App);
