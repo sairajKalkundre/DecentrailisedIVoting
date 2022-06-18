@@ -20,9 +20,9 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="Area" component={Area} />
         <Stack.Screen name="Campaign List" component={CampaignList} />
+        <Stack.Screen name="Area" component={Area} />
+        <Stack.Screen name="Home" component={Home} />
       </Stack.Navigator>
     </NavigationContainer>
   );

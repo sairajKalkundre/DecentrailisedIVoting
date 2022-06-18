@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useRef} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   FlatList,
   SafeAreaView,
@@ -12,34 +12,33 @@ import Profile from '../../assets/icons/profile';
 import {DownArrow} from '../../assets/icons/DownArrow';
 import BottomSheet from '@gorhom/bottom-sheet';
 import FastImage from 'react-native-fast-image';
+import SuccessIcon from '../../assets/icons/Success';
 
-const Home = () => {
-  const data = [
-    {
-      id: '1',
-      name: 'Narendra Modi',
-      imgUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/b/be/Official_portrait_of_the_Prime_Minister_Narendra_Modi%2C_November_2020_%28cropped%29.jpg',
-    },
-    {
-      id: '2',
-      name: 'Rahul Gandhi',
-      imgUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/7/70/Rahul_Gandhi_%28portrait_crop%29.jpg',
-    },
-    {
-      id: '3',
-      name: 'Narendra Modi',
-      imgUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/b/be/Official_portrait_of_the_Prime_Minister_Narendra_Modi%2C_November_2020_%28cropped%29.jpg',
-    },
-    {
-      id: '4',
-      name: 'Rahul Gandhi',
-      imgUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/7/70/Rahul_Gandhi_%28portrait_crop%29.jpg',
-    },
-  ];
+const Home = ({route, navigation}) => {
+  const {
+    params: {areaCode, campaignCode},
+  } = route;
+  const [candidateData, setCandidateData] = useState([]);
+  const [addharNo, setAdharNo] = useState('');
+  const [showOtp, setShowOtp] = useState(false);
+  const [otp, setOTP] = useState('');
+  const [token, setToken] = useState('');
+  const [candidateCode, setCandidateCode] = useState('');
+  const [showVotingWarning, setShowVotingWarning] = useState('');
+
+  const url = `https://decentralized-ivoting.herokuapp.com/candidate-list?campaignCode=${campaignCode}&areaCode=${areaCode}`;
+  console.log(url);
+
+  useEffect(() => {
+    fetch(url, {
+      method: 'GET',
+    })
+      .then(res => res.json())
+      .then(response => {
+        console.log({response});
+        setCandidateData(response);
+      });
+  }, []);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 
@@ -50,8 +49,63 @@ const Home = () => {
     console.log('handleSheetChanges', index);
   }, []);
 
-  const openBottomSheet = () => {
+  const openBottomSheet = candidateCode => {
+    setCandidateCode(candidateCode);
     bottomSheetRef.current.snapToPosition('35%');
+  };
+
+  const checkForVoter = () => {
+    if (showOtp) {
+      const voteURL = 'https://decentralized-ivoting.herokuapp.com/vote/';
+      fetch(voteURL, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          campaignCode: campaignCode,
+          areaCode: areaCode,
+          candidateCode,
+          voterId: addharNo,
+          token,
+          otp,
+        }),
+      })
+        .then(res => res.json())
+        .then(response => {
+          console.log({response});
+          setToken(response?.token);
+          setShowOtp(true);
+        })
+        .catch(error => {
+          console.log(error);
+        });
+    } else {
+      const voterURL =
+        'https://decentralized-ivoting.herokuapp.com/authenticate-voter/';
+      fetch(voterURL, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          voterId: addharNo,
+          campaignCode: campaignCode,
+          areaCode: areaCode,
+        }),
+      })
+        .then(res => res.json())
+        .then(response => {
+          console.log({response});
+          setToken(response?.token);
+          setShowOtp(true);
+        })
+        .catch(error => {
+          console.log(error);
+        });
+    }
   };
 
   const renderItem = ({item}) => {
@@ -74,13 +128,13 @@ const Home = () => {
         <FastImage
           style={{width: 100, height: 100, borderRadius: 50}}
           source={{
-            uri: item?.imgUrl,
+            uri: item?.candidateSign,
             headers: {Authorization: 'someAuthToken'},
             priority: FastImage.priority.normal,
           }}
           resizeMode={FastImage.resizeMode.contain}
         />
-        <Text style={{fontSize: 16, marginTop: 10}}>{item?.name}</Text>
+        <Text style={{fontSize: 16, marginTop: 10}}>{item?.candidateName}</Text>
         <TouchableOpacity
           style={{
             width: 100,
@@ -91,13 +145,58 @@ const Home = () => {
             alignItems: 'center',
             borderRadius: 10,
           }}
-          onPress={() => openBottomSheet()}>
+          onPress={() => openBottomSheet(item?.candidateCode)}>
           <Text style={{color: 'white', fontWeight: '600'}}>Vote</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
+  // const VotingSteps = () => {
+  //   return (
+  //
+  //   );
+  // };
+
+  const VotingFailed = () => {
+    return (
+      <View
+        style={{
+          flex: 1,
+        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flex: 1,
+          }}>
+          <SuccessIcon height={50} width={50} />
+          <Text style={{fontSize: 20, fontWeight: 'bold', marginLeft: 10}}>
+            Voted Sucessfully
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={{
+            height: 35,
+            width: 200,
+            backgroundColor: '#121212',
+            alignSelf: 'center',
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <Text
+            style={{
+              color: 'white',
+              fontSize: 16,
+            }}>
+            Close Modal
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#E8E8E8'}}>
       <View style={{backgroundColor: 'white'}}>
@@ -117,7 +216,7 @@ const Home = () => {
           </View>
         </View>
         <FlatList
-          data={data}
+          data={candidateData}
           horizontal={true}
           renderItem={renderItem}
           keyExtractor={item => item.id}
@@ -142,8 +241,10 @@ const Home = () => {
               marginTop: 10,
               borderRadius: 10,
               paddingLeft: 10,
+              backgroundColor: showOtp ? '#FFE4B5' : null,
             }}
             placeholder={'Name'}
+            editable={!showOtp}
             placeholderTextColor="black"
           />
           <TextInput
@@ -155,23 +256,29 @@ const Home = () => {
               marginTop: 10,
               borderRadius: 10,
               paddingLeft: 10,
+              backgroundColor: showOtp ? '#FFE4B5' : null,
             }}
+            editable={!showOtp}
             placeholder={'Aadhar No'}
             placeholderTextColor="black"
+            onChangeText={e => setAdharNo(e)}
           />
-          <TextInput
-            style={{
-              width: '80%',
-              height: 40,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: '#000',
-              marginTop: 10,
-              borderRadius: 10,
-              paddingLeft: 10,
-            }}
-            placeholder={'OTP'}
-            placeholderTextColor="black"
-          />
+          {showOtp && (
+            <TextInput
+              style={{
+                width: '80%',
+                height: 40,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: '#000',
+                marginTop: 10,
+                borderRadius: 10,
+                paddingLeft: 10,
+              }}
+              placeholder={'OTP'}
+              placeholderTextColor="black"
+              onChangeText={e => setOTP(e)}
+            />
+          )}
           <TouchableOpacity
             style={{
               width: '80%',
@@ -181,8 +288,11 @@ const Home = () => {
               justifyContent: 'center',
               alignItems: 'center',
               borderRadius: 10,
-            }}>
-            <Text style={{color: 'white', fontWeight: '600'}}>Submit</Text>
+            }}
+            onPress={() => checkForVoter()}>
+            <Text style={{color: 'white', fontWeight: '600'}}>
+              {showOtp ? 'Vote' : 'Submit'}
+            </Text>
           </TouchableOpacity>
         </View>
       </BottomSheet>

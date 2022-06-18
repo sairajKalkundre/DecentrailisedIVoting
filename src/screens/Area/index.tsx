@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {FlatList, Text, View} from 'react-native';
+import {FlatList, Text, TouchableOpacity, View} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 
 const Area = ({route, navigation}) => {
   const {code} = route.params;
@@ -8,20 +9,39 @@ const Area = ({route, navigation}) => {
     'https://decentralized-ivoting.herokuapp.com/area-list?campaignCode=' +
     code;
   const [area, setArea] = useState([]);
+  const navigate = useNavigation();
 
+  const navigateToVoting = areaCode => {
+    navigate.navigate('Home', {
+      campaignCode: code,
+      areaCode: areaCode,
+    });
+  };
   useEffect(() => {
-    const data = fetch(url, {
+    fetch(url, {
       method: 'GET',
     })
       .then(res => res.json())
-      .then(response => console.log({response}));
+      .then(response => {
+        console.log({response});
+        setArea(response);
+      });
   }, []);
 
   const renderItem = ({item, index}) => {
     return (
-      <View>
-        <Text>{item?.areaName}</Text>
-      </View>
+      <TouchableOpacity
+        style={{
+          flexDirection: 'row',
+          height: 50,
+          backgroundColor: '#DCDCDC',
+          margin: 5,
+          alignItems: 'center',
+          borderRadius: 10,
+        }}
+        onPress={() => navigateToVoting(item?.areaCode)}>
+        <Text style={{fontSize: 18, marginLeft: 10}}>{item?.areaName}</Text>
+      </TouchableOpacity>
     );
   };
 
