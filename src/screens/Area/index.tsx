@@ -44,7 +44,14 @@ const Area = ({route, navigation}) => {
       </TouchableOpacity>
     );
   };
-
+  if (area.length === 0) {
+    return (
+      <View
+        style={{height: 200, alignItems: 'center', justifyContent: 'center'}}>
+        <Text style={{fontSize: 18, fontWeight: 'bold'}}>No Area Found</Text>
+      </View>
+    );
+  }
   return (
     <View>
       <FlatList data={area} renderItem={renderItem} />

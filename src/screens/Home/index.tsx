@@ -24,8 +24,12 @@ const Home = ({route, navigation}) => {
   const [otp, setOTP] = useState('');
   const [token, setToken] = useState('');
   const [candidateCode, setCandidateCode] = useState('');
-  const [showVotingWarning, setShowVotingWarning] = useState('');
-
+  const [validation, setValidation] = useState({
+    validationField: 'nothing',
+    validationErrorMsg: 'nothing',
+  });
+  const [showVotingSuccess, setShowVotingSuccess] = useState(false);
+  const [name, setName] = useState('');
   const url = `https://decentralized-ivoting.herokuapp.com/candidate-list?campaignCode=${campaignCode}&areaCode=${areaCode}`;
   console.log(url);
 
@@ -56,56 +60,115 @@ const Home = ({route, navigation}) => {
 
   const checkForVoter = () => {
     if (showOtp) {
-      const voteURL = 'https://decentralized-ivoting.herokuapp.com/vote/';
-      fetch(voteURL, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          campaignCode: campaignCode,
-          areaCode: areaCode,
-          candidateCode,
-          voterId: addharNo,
-          token,
-          otp,
-        }),
-      })
-        .then(res => res.json())
-        .then(response => {
-          console.log({response});
-          setToken(response?.token);
-          setShowOtp(true);
-        })
-        .catch(error => {
-          console.log(error);
+      if (otp.length === 0) {
+        setValidation({
+          validationField: 'otp',
+          validationErrorMsg: 'OTP No is mandatory',
         });
+      } else {
+        setValidation({
+          validationField: 'nothing',
+          validationErrorMsg: 'nothing',
+        });
+        voteAfterAuthenticate();
+      }
     } else {
-      const voterURL =
-        'https://decentralized-ivoting.herokuapp.com/authenticate-voter/';
-      fetch(voterURL, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          voterId: addharNo,
-          campaignCode: campaignCode,
-          areaCode: areaCode,
-        }),
+      if (name.length === 0) {
+        setValidation({
+          validationField: 'name',
+          validationErrorMsg: 'Name is mandatory',
+        });
+      } else if (addharNo.length === 0) {
+        setValidation({
+          validationField: 'aadhar',
+          validationErrorMsg: 'Aadhar No is mandatory',
+        });
+      } else {
+        setValidation({
+          validationField: 'nothing',
+          validationErrorMsg: 'nothing',
+        });
+        authenticate();
+      }
+    }
+  };
+
+  const voteAfterAuthenticate = () => {
+    const voteURL = 'https://decentralized-ivoting.herokuapp.com/vote/';
+    fetch(voteURL, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        campaignCode: campaignCode,
+        areaCode: areaCode,
+        candidateCode,
+        voterId: addharNo,
+        token,
+        otp,
+      }),
+    })
+      .then(res => res.json())
+      .then(response => {
+        console.log({response});
+        if (response?.error) {
+          setValidation({
+            validationField: 'otp',
+            validationErrorMsg: response?.error,
+          });
+        } else {
+          setValidation({
+            validationField: 'nothing',
+            validationErrorMsg: 'nothing',
+          });
+          setShowVotingSuccess(true);
+        }
       })
-        .then(res => res.json())
-        .then(response => {
-          console.log({response});
+      .catch(() => {
+        setValidation({
+          validationField: 'otp',
+          validationErrorMsg: 'Invalid OTP',
+        });
+      });
+  };
+
+  const authenticate = () => {
+    const voterURL =
+      'https://decentralized-ivoting.herokuapp.com/authenticate-voter/';
+    fetch(voterURL, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        voterId: addharNo,
+        campaignCode: campaignCode,
+        areaCode: areaCode,
+      }),
+    })
+      .then(res => res.json())
+      .then(response => {
+        console.log({response});
+        if (response?.error) {
+          setValidation({
+            validationField: 'aadhar',
+            validationErrorMsg: 'Invalid Aadhar No.',
+          });
+        } else {
+          setValidation({
+            validationField: 'nothing',
+            validationErrorMsg: 'nothing',
+          });
           setToken(response?.token);
           setShowOtp(true);
-        })
-        .catch(error => {
-          console.log(error);
-        });
-    }
+        }
+      })
+      .catch(error => {
+        console.log(error);
+      });
   };
 
   const renderItem = ({item}) => {
@@ -152,12 +215,6 @@ const Home = ({route, navigation}) => {
     );
   };
 
-  // const VotingSteps = () => {
-  //   return (
-  //
-  //   );
-  // };
-
   const VotingFailed = () => {
     return (
       <View
@@ -169,14 +226,15 @@ const Home = ({route, navigation}) => {
             flexDirection: 'row',
             justifyContent: 'center',
             alignItems: 'center',
-            flex: 1,
+            height: 100,
           }}>
           <SuccessIcon height={50} width={50} />
           <Text style={{fontSize: 20, fontWeight: 'bold', marginLeft: 10}}>
-            Voted Sucessfully
+            Voted Successfully
           </Text>
         </View>
         <TouchableOpacity
+          onPress={() => goBack()}
           style={{
             height: 35,
             width: 200,
@@ -191,11 +249,15 @@ const Home = ({route, navigation}) => {
               color: 'white',
               fontSize: 16,
             }}>
-            Close Modal
+            Go Back
           </Text>
         </TouchableOpacity>
       </View>
     );
+  };
+
+  const goBack = () => {
+    navigation.goBack();
   };
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#E8E8E8'}}>
@@ -228,73 +290,117 @@ const Home = ({route, navigation}) => {
         snapPoints={snapPoints}
         backgroundStyle={{backgroundColor: '#C8C8C8'}}
         onChange={handleSheetChanges}>
-        <View style={{flex: 1, alignItems: 'center'}}>
-          <Text style={{fontSize: 20, fontWeight: '700'}}>
-            Enter Credentials to Vote
-          </Text>
-          <TextInput
-            style={{
-              width: '80%',
-              height: 40,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: '#000',
-              marginTop: 10,
-              borderRadius: 10,
-              paddingLeft: 10,
-              backgroundColor: showOtp ? '#FFE4B5' : null,
-            }}
-            placeholder={'Name'}
-            editable={!showOtp}
-            placeholderTextColor="black"
-          />
-          <TextInput
-            style={{
-              width: '80%',
-              height: 40,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: '#000',
-              marginTop: 10,
-              borderRadius: 10,
-              paddingLeft: 10,
-              backgroundColor: showOtp ? '#FFE4B5' : null,
-            }}
-            editable={!showOtp}
-            placeholder={'Aadhar No'}
-            placeholderTextColor="black"
-            onChangeText={e => setAdharNo(e)}
-          />
-          {showOtp && (
+        {showVotingSuccess ? (
+          <VotingFailed />
+        ) : (
+          <View style={{flex: 1, alignItems: 'center'}}>
+            <Text style={{fontSize: 20, fontWeight: '700'}}>
+              Enter Credentials to Vote
+            </Text>
             <TextInput
               style={{
                 width: '80%',
                 height: 40,
                 borderWidth: StyleSheet.hairlineWidth,
-                borderColor: '#000',
+                borderColor:
+                  validation.validationField === 'name' ? 'red' : '#000',
                 marginTop: 10,
                 borderRadius: 10,
                 paddingLeft: 10,
+                backgroundColor: showOtp ? '#FFE4B5' : null,
               }}
-              placeholder={'OTP'}
+              placeholder={'Name'}
+              onChangeText={e => setName(e)}
+              editable={!showOtp}
               placeholderTextColor="black"
-              onChangeText={e => setOTP(e)}
             />
-          )}
-          <TouchableOpacity
-            style={{
-              width: '80%',
-              height: 40,
-              backgroundColor: 'blue',
-              marginTop: 10,
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderRadius: 10,
-            }}
-            onPress={() => checkForVoter()}>
-            <Text style={{color: 'white', fontWeight: '600'}}>
-              {showOtp ? 'Vote' : 'Submit'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {validation.validationField === 'name' && (
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '500',
+                  color: 'red',
+                  width: '80%',
+                  top: 2,
+                }}>
+                {validation.validationErrorMsg}
+              </Text>
+            )}
+            <TextInput
+              style={{
+                width: '80%',
+                height: 40,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor:
+                  validation.validationField === 'aadhar' ? 'red' : '#000',
+                marginTop: 10,
+                borderRadius: 10,
+                paddingLeft: 10,
+                backgroundColor: showOtp ? '#FFE4B5' : null,
+              }}
+              editable={!showOtp}
+              placeholder={'Aadhar No'}
+              placeholderTextColor="black"
+              onChangeText={e => setAdharNo(e)}
+            />
+            {validation.validationField === 'aadhar' && (
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '500',
+                  color: 'red',
+                  width: '80%',
+                  top: 2,
+                }}>
+                {validation.validationErrorMsg}
+              </Text>
+            )}
+            {showOtp && (
+              <TextInput
+                style={{
+                  width: '80%',
+                  height: 40,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor:
+                    validation.validationField === 'otp' ? 'red' : '#000',
+                  marginTop: 10,
+                  borderRadius: 10,
+                  paddingLeft: 10,
+                }}
+                placeholder={'OTP'}
+                placeholderTextColor="black"
+                onChangeText={e => setOTP(e)}
+              />
+            )}
+            {validation.validationField === 'otp' && (
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '500',
+                  color: 'red',
+                  width: '80%',
+                  top: 2,
+                }}>
+                {validation.validationErrorMsg}
+              </Text>
+            )}
+            <TouchableOpacity
+              style={{
+                width: '80%',
+                height: 40,
+                backgroundColor: 'blue',
+                marginTop: 10,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 10,
+              }}
+              onPress={() => checkForVoter()}>
+              <Text style={{color: 'white', fontWeight: '600'}}>
+                {showOtp ? 'Vote' : 'Authenticate'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </BottomSheet>
     </SafeAreaView>
   );
